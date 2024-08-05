@@ -112,9 +112,8 @@ def prepare_chapters_whitelist(only_chapters, chapters_total_count):
         if type(chapters_range) is tuple:
             if (
                     chapters_range[0] < 1
-                    or chapters_range[0] > chapters_total_count
                     or chapters_range[0] > chapters_range[1]
-                    or chapters_range[1]
+                    or chapters_range[1] > chapters_total_count
             ):
                 raise ValueError('Chapters filter out of range "{}"'.format(str(chapters_range)))
         else:
