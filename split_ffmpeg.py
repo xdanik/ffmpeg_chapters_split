@@ -65,14 +65,15 @@ def convert_file(input_file, output_file, start_time, end_time, metadata, extra_
         '-hwaccel', 'auto',
         '-v', 'quiet',
         '-y',
+        '-accurate_seek',
+        '-ss', str(start_time),
         '-i', str(input_file),
         '-i', str(metadata_temp_file.name),
+        '-to', str("{:.6f}").format(float(end_time) - float(start_time)), # -to must be relative to start as -ss is used
         '-map_chapters', '-1',
         '-map_metadata', '-1',
         '-map_metadata', '1',
         *extra_args,
-        '-ss', str(start_time),
-        '-to', str(end_time),
         str(output_file),
     ]
 
