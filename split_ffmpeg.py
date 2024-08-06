@@ -139,7 +139,8 @@ def process(options):
     input_file_basename, input_file_extension = os.path.splitext(input_file)
     chapters = parse_chapters(input_file)
 
-    print('Found chapters: {}'.format(len(chapters)))
+    if not chapters:
+        raise ValueError('No chapters detected in the input file')
 
     if options.dir is None:
         output_dir = os.path.join(os.getcwd(), input_file_basename)
@@ -169,8 +170,7 @@ def process(options):
     else:
         chapters_to_be_processed = chapters
 
-    if not chapters_to_be_processed:
-        raise ValueError('No chapters to be processed')
+    print('Found {} chapters, {} to be processed'.format(len(chapters), len(chapters_to_be_processed)))
 
     processed_chapters_count = 1
     for chapter in chapters_to_be_processed:
