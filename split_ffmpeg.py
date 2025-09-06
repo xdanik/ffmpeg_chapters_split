@@ -15,7 +15,6 @@ import shlex
 def parse_chapters(filename):
     chapters = []
     command = ["ffprobe", '-i', filename, '-print_format', 'json', '-show_chapters', '-loglevel', 'error']
-    output = ""
     try:
         # ffmpeg requires an output file and so it errors
         # when it does not get one so we need to capture stderr,
@@ -63,7 +62,6 @@ def convert_file(input_file, output_file, start_time, end_time, metadata, extra_
     command = [
         'ffmpeg',
         '-hwaccel', 'auto',
-        '-v', 'quiet',
         '-y',
         '-accurate_seek',
         '-ss', str(start_time),
@@ -80,7 +78,7 @@ def convert_file(input_file, output_file, start_time, end_time, metadata, extra_
     try:
         subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, check=True)
     except subprocess.CalledProcessError as e:
-        raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+        raise RuntimeError("command '{}' return with error (code {}): {}".format(" ".join(e.cmd), e.returncode, e.output))
     finally:
         metadata_temp_file.close()
 
