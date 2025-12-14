@@ -105,7 +105,7 @@ def process(options):
         raise ValueError('No files found in the input dir')
 
     try:
-        os.mkdir(output_dir_root)
+        os.makedirs(output_dir_root)
     except FileExistsError:
         if not options.overwrite:
             print(f"Output directory {output_dir_root} already exists, use -f option to force overwrite")

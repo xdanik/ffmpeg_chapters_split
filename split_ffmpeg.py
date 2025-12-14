@@ -146,7 +146,7 @@ def process(options):
         output_dir = os.path.abspath(os.path.expanduser(os.path.expandvars(options.dir)))
 
     try:
-        os.mkdir(output_dir)
+        os.makedirs(output_dir)
     except FileExistsError:
         if not options.overwrite:
             print(f"Output directory {output_dir} already exists, use -f option to force overwrite")
