@@ -12,7 +12,7 @@ import glob
 
 def convert_file(input_file, output_file, metadata, extra_flags):
     # write metadata for ffmpeg to tmp file to avoid issues with special characters in command line input
-    metadata_temp_file = tempfile.NamedTemporaryFile(delete_on_close=False, mode="w", suffix='.txt')
+    metadata_temp_file = tempfile.NamedTemporaryFile(mode="w", suffix='.txt')
     metadata_str = ";FFMETADATA1\n"
     for key, value in metadata.items():
         metadata_str += '{}={}\n'.format(key, value)
@@ -59,6 +59,8 @@ def sanitize_filename(filename):
 def parse_episode_name(filename):
     basename = os.path.basename(filename)
     matches = re.search(r'^(.*) S(\d+)E(\d+)(?:-\d+)? (.*)$', os.path.splitext(basename)[0])
+    if not matches:
+        raise ValueError("Unable to parse episode info from '{}'".format(os.path.splitext(basename)[0]))
     return {
         'show': matches.group(1).rstrip(' -'),
         'season' : int(matches.group(2)),
@@ -90,7 +92,12 @@ def process(options):
         output_dir = os.path.join(output_dir_root, os.path.split(relative_path)[0])
         output_path = os.path.join(output_dir, input_file_basename + output_file_extension)
 
-        meta = parse_episode_name(file)
+        try:
+            meta = parse_episode_name(file)
+        except ValueError as e:
+            print(f"Skipping file {file}: {e}")
+            continue
+
         files_to_be_processed.append({
             'input_path': file,
             'output_dir': output_dir,
