@@ -10,6 +10,7 @@ import subprocess
 from optparse import OptionParser
 import json
 import shlex
+from collections import Counter
 
 
 def parse_chapters(filename):
@@ -42,7 +43,7 @@ def parse_chapters(filename):
     return chapters
 
 
-def convert_file(input_file, output_file, start_time, end_time, metadata, extra_flags):
+def convert_file(input_file, output_file, start_time, end_time, metadata, extra_flags, crop):
     # write metadata for ffmpeg to tmp file to avoid issues with special characters in command line input
     metadata_temp_file = tempfile.NamedTemporaryFile(delete_on_close=False, mode="w", suffix='.txt')
     metadata_str = ";FFMETADATA1\n"
@@ -58,6 +59,8 @@ def convert_file(input_file, output_file, start_time, end_time, metadata, extra_
             '-vcodec', 'copy',
             '-acodec', 'copy',
         ]
+
+    extra_args = [arg.replace('%auto-crop%', crop) for arg in extra_args]
 
     command = [
         'ffmpeg',
@@ -82,6 +85,34 @@ def convert_file(input_file, output_file, start_time, end_time, metadata, extra_
     finally:
         metadata_temp_file.close()
 
+
+def detect_black_bars_crop(input_file, start_time, end_time):
+    command = [
+        'ffmpeg',
+        '-hwaccel', 'auto',
+        '-accurate_seek',
+        '-ss', str(start_time),
+        '-i', str(input_file),
+        # -to must be relative to start as -ss is used,
+        '-to', str("{:.6f}").format(float(end_time) - float(start_time)),
+        '-vf', 'cropdetect=round=2:reset_count=1',
+        '-f', 'null',
+        '-',
+    ]
+
+    try:
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            "command '{}' return with error (code {}): {}".format(" ".join(e.cmd), e.returncode, e.output))
+
+    crops = re.findall(r'crop=\d+:\d+:\d+:\d+', result.stdout)
+    if not crops:
+        return None
+
+    most_common_crop, _ = Counter(crops).most_common(1)[0]
+
+    return most_common_crop
 
 def sanitize_filename(filename):
     valid_filename_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
@@ -197,7 +228,13 @@ def process(options):
             metadata["date"] = options.meta_date
 
         print('Processing chapter {}/{}: {}'.format(processed_chapters_count, len(chapters_to_be_processed), file_name))
-        convert_file(input_file, output_file, chapter['start'], chapter['end'], metadata, options.flags)
+
+        crop = None
+        if options.auto_crop:
+            crop = detect_black_bars_crop(input_file, chapter['start'], chapter['end'])
+            print('Detected crop: {}'.format(crop))
+
+        convert_file(input_file, output_file, chapter['start'], chapter['end'], metadata, options.flags, crop)
         processed_chapters_count += 1
 
 
@@ -207,6 +244,7 @@ if __name__ == '__main__':
     parser.add_option("-i", "--input", dest="input", help="Input file")
     parser.add_option("-d", "--dir", dest="dir", help="Output directory")
     parser.add_option('--flags', dest="flags", help="ffmpeg flags")
+    parser.add_option('--auto-crop', dest="auto_crop", help="auto crop black bars")
     parser.add_option('--output-ext', dest="output_ext", help="output extension override")
     parser.add_option('--only-chapters', dest="only_chapters", help="Only specified chapters will be processed")
 
