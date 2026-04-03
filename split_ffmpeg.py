@@ -60,7 +60,8 @@ def convert_file(input_file, output_file, start_time, end_time, metadata, extra_
             '-acodec', 'copy',
         ]
 
-    extra_args = [arg.replace('%auto-crop%', crop) for arg in extra_args]
+    if crop is not None:
+        extra_args = [arg.replace('%auto-crop%', crop) for arg in extra_args]
 
     command = [
         'ffmpeg',
